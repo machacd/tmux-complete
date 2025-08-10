@@ -2,6 +2,8 @@
 
 A tmux plugin that provides emacs-style word completion with cycling functionality, similar to `Alt+/` in emacs.
 
+![Demo](demo.gif)
+
 ## Features
 
 - **Word completion**: Complete partial words by searching through all panes
@@ -13,7 +15,7 @@ A tmux plugin that provides emacs-style word completion with cycling functionali
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/your-username/tmux-complete ~/.tmux/plugins/tmux-complete
+   git clone https://github.com/machacd/tmux-complete ~/.tmux/plugins/tmux-complete
    ```
 
 2. Add this line to your `~/.tmux.conf`:
@@ -84,3 +86,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## TODO
 
 - [ ] Show word search time in the status bar
+- [ ] Sort words in cycle by order of appearance
