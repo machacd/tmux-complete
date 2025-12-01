@@ -67,26 +67,61 @@ if [[ "$reset_cycle" == "false" && -n "$original_word" ]]; then
     search_word="$original_word"
 fi
 
-# Extract words from all panes - both full paths and individual components
-# First get all pane content
+# Extract words from panes in priority order:
+# 1. Current pane
+# 2. Other panes in current window
+# 3. Panes in other windows
+
+# Get current window ID
+window_id=$(tmux display-message -p '#{window_id}')
+
+# Helper function to extract words from content
+extract_words() {
+    local content_file="$1"
+    local output_file="$2"
+
+    # Extract both full paths and components
+    grep -oE '[a-zA-Z0-9_/.=-]{2,}' "$content_file" > "$CACHE_DIR/temp_full"
+    grep -oE '[a-zA-Z0-9_/.=-]{2,}' "$content_file" | sed 's/[/.]/\n/g' | grep -E '^[a-zA-Z0-9_=-]{2,}$' > "$CACHE_DIR/temp_components"
+
+    # Combine, filter by search word, and deduplicate
+    cat "$CACHE_DIR/temp_full" "$CACHE_DIR/temp_components" | grep "^$search_word" | grep -v "^$search_word$" | awk '!seen[$0]++' > "$output_file"
+}
+
+# 1. Collect words from current pane
 if [[ "$INCLUDE_SCROLLBACK" == "true" ]]; then
-    # Include scrollback history (much larger word list)
-    tmux list-panes -a -F '#{pane_id}' | while read -r pane; do
-        tmux capture-pane -t "$pane" -S - -p
-    done > "$CACHE_DIR/all_content"
+    tmux capture-pane -t "$pane_id" -S - -p > "$CACHE_DIR/current_pane"
 else
-    # Only visible content (current approach)
-    tmux list-panes -a -F '#{pane_id}' | while read -r pane; do
-        tmux capture-pane -t "$pane" -p
-    done > "$CACHE_DIR/all_content"
+    tmux capture-pane -t "$pane_id" -p > "$CACHE_DIR/current_pane"
 fi
+extract_words "$CACHE_DIR/current_pane" "$CACHE_DIR/words_current_pane"
 
-# Extract both full paths and components
-grep -oE '[a-zA-Z0-9_/.=-]{2,}' "$CACHE_DIR/all_content" > "$CACHE_DIR/full_words"
-grep -oE '[a-zA-Z0-9_/.=-]{2,}' "$CACHE_DIR/all_content" | sed 's/[/.]/\n/g' | grep -E '^[a-zA-Z0-9_=-]{2,}$' > "$CACHE_DIR/components"
+# 2. Collect words from other panes in current window
+if [[ "$INCLUDE_SCROLLBACK" == "true" ]]; then
+    tmux list-panes -t "$window_id" -F '#{pane_id}' | grep -v "^$pane_id$" | while read -r pane; do
+        tmux capture-pane -t "$pane" -S - -p
+    done > "$CACHE_DIR/current_window"
+else
+    tmux list-panes -t "$window_id" -F '#{pane_id}' | grep -v "^$pane_id$" | while read -r pane; do
+        tmux capture-pane -t "$pane" -p
+    done > "$CACHE_DIR/current_window"
+fi
+extract_words "$CACHE_DIR/current_window" "$CACHE_DIR/words_current_window"
 
-# Combine and filter
-cat "$CACHE_DIR/full_words" "$CACHE_DIR/components" | grep "^$search_word" | sort -u | grep -v "^$search_word$" > "$WORDS_FILE"
+# 3. Collect words from other windows
+if [[ "$INCLUDE_SCROLLBACK" == "true" ]]; then
+    tmux list-panes -a -F '#{window_id} #{pane_id}' | grep -v "^$window_id " | cut -d' ' -f2 | while read -r pane; do
+        tmux capture-pane -t "$pane" -S - -p
+    done > "$CACHE_DIR/other_windows"
+else
+    tmux list-panes -a -F '#{window_id} #{pane_id}' | grep -v "^$window_id " | cut -d' ' -f2 | while read -r pane; do
+        tmux capture-pane -t "$pane" -p
+    done > "$CACHE_DIR/other_windows"
+fi
+extract_words "$CACHE_DIR/other_windows" "$CACHE_DIR/words_other_windows"
+
+# Combine in priority order, removing duplicates (keeping first occurrence)
+cat "$CACHE_DIR/words_current_pane" "$CACHE_DIR/words_current_window" "$CACHE_DIR/words_other_windows" | awk '!seen[$0]++' > "$WORDS_FILE"
 
 if [[ "$reset_cycle" == "true" ]]; then
     original_word="$current_word"
