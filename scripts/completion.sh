@@ -84,8 +84,10 @@ extract_words() {
     grep -oE '[a-zA-Z0-9_/.=-]{2,}' "$content_file" > "$CACHE_DIR/temp_full"
     grep -oE '[a-zA-Z0-9_/.=-]{2,}' "$content_file" | sed 's/[/.]/\n/g' | grep -E '^[a-zA-Z0-9_=-]{2,}$' > "$CACHE_DIR/temp_components"
 
-    # Combine, filter by search word, and deduplicate
-    cat "$CACHE_DIR/temp_full" "$CACHE_DIR/temp_components" | grep "^$search_word" | grep -v "^$search_word$" | awk '!seen[$0]++' > "$output_file"
+    # Combine, filter by search word (literal prefix match), and deduplicate.
+    # awk index()==1 treats the word as a fixed string, so regex metacharacters
+    # like '.' in the typed word don't match arbitrary characters.
+    cat "$CACHE_DIR/temp_full" "$CACHE_DIR/temp_components" | awk -v w="$search_word" 'index($0, w) == 1 && $0 != w && !seen[$0]++' > "$output_file"
 }
 
 # 1. Collect words from current pane
@@ -160,9 +162,9 @@ done
 # When starting new cycle, type the entire selected word
 if [[ "$reset_cycle" == "false" && -n "$original_word" ]]; then
     suffix="${selected_word:${#original_word}}"
-    tmux send-keys -t "$pane_id" "$suffix"
+    tmux send-keys -t "$pane_id" -l -- "$suffix"
 else
-    tmux send-keys -t "$pane_id" "$selected_word"
+    tmux send-keys -t "$pane_id" -l -- "$selected_word"
 fi
 
 # Save state
