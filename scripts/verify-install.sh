@@ -42,7 +42,8 @@ echo "=== Installation verified successfully! ==="
 echo
 echo "Usage:"
 echo "  prefix + /     - Complete word (visible content)"
-echo "  prefix + ?     - Complete word (scrollback history)"  
+echo "  prefix + ?     - Complete word (scrollback history)"
+echo "  prefix + F     - Fuzzy-select word with fzf (popup)"
 echo "  Alt + /        - Complete word (no prefix needed)"
 echo
 echo "Try typing a partial word and pressing the completion key!"

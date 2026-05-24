@@ -10,6 +10,7 @@ A tmux plugin that provides emacs-style word completion with cycling functionali
 - **Cycling**: Press the completion key multiple times to cycle through matches  
 - **Scrollback support**: Option to search through entire scrollback history
 - **Path component extraction**: Handles both full paths and individual components
+- **Fuzzy selection (fzf)**: Pick a completion from an fzf popup instead of cycling
 
 ## Installation
 
@@ -34,6 +35,7 @@ A tmux plugin that provides emacs-style word completion with cycling functionali
 
 - **`prefix + /`** - Complete word using visible pane content
 - **`prefix + ?`** - Complete word using entire scrollback history (larger word pool)
+- **`prefix + F`** - Open an fzf popup to fuzzy-select a word from visible panes
 
 ### How It Works
 
@@ -55,6 +57,9 @@ set -g @completion_key "/"
 
 # Change the scrollback completion key (default: "?") 
 set -g @completion_scrollback_key "?"
+
+# Change the fzf popup key (default: "F")
+set -g @completion_fzf_key "F"
 ```
 
 ## Word Matching
@@ -78,6 +83,7 @@ It extracts both:
 - tmux 2.0+
 - bash
 - Standard Unix utilities (grep, sed, awk)
+- [fzf](https://github.com/junegunn/fzf) and tmux 3.2+ — only for the `prefix + F` fuzzy popup
 
 ## License
 
